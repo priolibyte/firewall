@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full select-none">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fortinet FortiOS 7.4 | FortiGate-3000F (Rede Grego)</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for enterprise telemetry -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        forti: {
+                            bg: '#14161d',
+                            panel: '#1d202c',
+                            card: '#252836',
+                            border: '#333748',
+                            red: '#cc3333',
+                            redHover: '#b32424',
+                            green: '#20ba68',
+                            blue: '#2e7bf6',
+                            amber: '#f59e0b',
+                            text: '#e2e8f0',
+                            muted: '#8e96a6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #14161d;
+            color: #e2e8f0;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1d202c;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333748;
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        .status-dot-pulse {
+            box-shadow: 0 0 0 0 rgba(32, 186, 104, 0.7);
+            animation: pulse-green 2s infinite;
+        }
+
+        .alarm-pulse-red {
+            animation: pulse-red-bg 1s infinite alternate;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(32, 186, 104, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(32, 186, 104, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(32, 186, 104, 0); }
+        }
+
+        @keyframes pulse-red-bg {
+            0% { background-color: rgba(204, 51, 51, 0.1); }
+            100% { background-color: rgba(204, 51, 51, 0.35); }
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-xs md:text-sm dark">
+
+    <!-- LOGIN SCREEN OVERLAY (FANTASY LOGIN) -->
+    <div id="login-overlay" class="fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4">
+        <div class="bg-forti-panel border border-forti-border w-full max-w-md rounded shadow-2xl overflow-hidden flex flex-col">
+            <div class="bg-slate-950 p-4 border-b border-forti-border flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-6 h-6 bg-forti-red rounded-xs flex items-center justify-center font-bold text-xs text-white">FG</div>
+                    <div>
+                        <span class="font-bold text-white tracking-wide font-mono text-sm block leading-none">Fortinet FortiOS 7.4</span>
+                        <span class="text-[10px] text-forti-muted font-mono">FortiGate-3000F Control Center</span>
+                    </div>
+                </div>
+                <span class="text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-mono">REDE GREGO</span>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <div class="text-center space-y-1">
+                    <h2 class="text-base font-bold text-slate-100">Autenticação FortiGate Security Fabric</h2>
+                    <p class="text-xs text-forti-muted font-mono">Domínio Criptográfico: <span class="text-amber-400 font-bold">REDE GREGO (192.168.12.0/24)</span></p>
+                </div>
+
+                <div id="login-error" class="hidden bg-red-950/80 border border-red-700 text-red-300 p-2.5 rounded text-xs font-mono text-center">
+                    Credenciais incorretas! Tente novamente.
+                </div>
+
+                <form onsubmit="handleLogin(event)" class="space-y-3 font-mono">
+                    <div>
+                        <label class="block text-forti-muted text-xs mb-1">Usuário:</label>
+                        <input id="login-user" type="text" value="r_eder" class="w-full bg-forti-bg border border-forti-border text-white p-2 rounded focus:outline-none focus:border-blue-500 text-xs">
+                    </div>
+                    <div>
+                        <label class="block text-forti-muted text-xs mb-1">Senha:</label>
+                        <input id="login-pass" type="password" value="8080Ipmask@" class="w-full bg-forti-bg border border-forti-border text-white p-2 rounded focus:outline-none focus:border-blue-500 text-xs">
+                    </div>
+                    <button type="submit" class="w-full bg-forti-red hover:bg-forti-redHover text-white font-bold py-2 rounded text-xs transition-colors flex items-center justify-center gap-2 mt-2">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i>
+                        <span>Acessar FortiGate Control Center</span>
+                    </button>
+                </form>
+
+                <div class="text-[10px] text-forti-muted text-center font-mono border-t border-forti-border pt-3">
+                    Acesso restrito: Fortinet Security Fabric / Enclave Criptográfico TACLANE Type 1.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOP SYSTEM NAVBAR -->
+    <header class="bg-forti-panel border-b border-forti-border text-slate-200 px-3 py-1.5 flex items-center justify-between shrink-0 z-30 select-none">
+        <!-- Left: Brand / Hostname / Network Name -->
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 bg-forti-card px-2.5 py-1 rounded border border-forti-border">
+                <div class="w-4 h-4 bg-forti-red rounded-xs font-bold flex items-center justify-center text-[10px] text-white">FG</div>
+                <span class="font-bold text-white tracking-wide font-mono text-xs">FortiGate-3000F</span>
+                <span class="text-forti-border text-[11px]">|</span>
+                <span class="text-forti-muted font-mono text-[11px]">FortiOS v7.4.2</span>
+            </div>
+
+            <!-- Network Name Tag -->
+            <div class="flex items-center gap-1.5 px-2.5 py-0.5 bg-blue-950/80 border border-blue-700/80 rounded text-blue-300 text-[11px] font-mono">
+                <i data-lucide="wifi" class="w-3.5 h-3.5 text-blue-400"></i>
+                <span>Rede: <strong class="text-white">Grego</strong></span>
+            </div>
+
+            <!-- HA Cluster Status -->
+            <div class="hidden lg:flex items-center gap-1.5 px-2 py-0.5 bg-emerald-950/60 border border-emerald-800/60 rounded text-emerald-400 text-[11px]">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 status-dot-pulse"></span>
+                <span class="font-semibold">HA: Ativo-Ativo</span>
+            </div>
+        </div>
+
+        <!-- Center: Automatic Random Scheduler Status & Quick Test -->
+        <div class="hidden xl:flex items-center gap-3 bg-forti-bg border border-forti-border px-3 py-1 rounded">
+            <div class="flex items-center gap-2">
+                <span class="text-forti-muted text-xs font-mono">Agendador (8h):</span>
+                <button id="toggle-random-btn" onclick="toggleRandomMode()" class="px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-700 hover:border-emerald-500 transition-all">
+                    AUTOMÁTICO ATIVO
+                </button>
+            </div>
+            <div class="flex items-center gap-1 bg-forti-card px-2 py-0.5 rounded border border-forti-border font-mono text-[11px] text-amber-400">
+                <i data-lucide="timer" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span>Próximo Alarme em: <strong id="countdown-timer" class="text-white">08:00:00</strong></span>
+            </div>
+            <span class="text-forti-border">|</span>
+            <div class="flex items-center gap-1 text-[11px]">
+                <span class="text-forti-muted font-mono">Testar Alarme:</span>
+                <button onclick="triggerAlarm('LEVE')" class="px-1.5 py-0.5 bg-blue-950 text-blue-400 border border-blue-800 rounded hover:bg-blue-900 font-mono text-[10px]">Leve</button>
+                <button onclick="triggerAlarm('MÉDIO')" class="px-1.5 py-0.5 bg-amber-950 text-amber-400 border border-amber-800 rounded hover:bg-amber-900 font-mono text-[10px]">Médio</button>
+                <button onclick="triggerAlarm('GRAVE')" class="px-1.5 py-0.5 bg-red-950 text-red-400 border border-red-800 rounded hover:bg-red-900 font-mono text-[10px]">Grave</button>
+            </div>
+        </div>
+
+        <!-- Right: Logged User Display & Controls -->
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 border-l border-forti-border pl-3">
+                <div class="text-right hidden sm:block">
+                    <div class="font-mono text-[11px] text-white font-semibold leading-tight">
+                        Usuário Logado: <span id="logged-user-display" class="text-emerald-400 font-bold">r_eder</span>
+                    </div>
+                    <div class="text-[9px] text-forti-muted font-mono">r_eder (Administrador / Cripto-Oficial)</div>
+                </div>
+                <div class="w-7 h-7 rounded bg-forti-card border border-forti-border text-emerald-400 flex items-center justify-center font-bold text-xs font-mono">
+                    RE
+                </div>
+                <button onclick="logout()" class="ml-1 text-forti-muted hover:text-white p-1 rounded hover:bg-forti-card" title="Sair">
+                    <i data-lucide="log-out" class="w-4 h-4"></i>
+                </button>
+                <button onclick="triggerEmergencyModal()" class="ml-1 bg-forti-red hover:bg-forti-redHover text-white px-2 py-1 rounded text-[11px] font-bold tracking-tight transition-colors flex items-center gap-1 shadow-sm" title="Zeroizar Criptografia">
+                    <i data-lucide="flame" class="w-3.5 h-3.5"></i>
+                    <span class="hidden md:inline">ZEROIZE</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <div class="flex flex-1 overflow-hidden">
+
+        <!-- LEFT SIDEBAR MENU -->
+        <aside class="w-14 md:w-60 bg-forti-panel border-r border-forti-border flex flex-col justify-between shrink-0 select-none">
+            <div class="py-2">
+                <div class="px-3 py-1 text-[10px] font-bold text-forti-muted uppercase tracking-wider hidden md:block">
+                    Fortinet Security Fabric
+                </div>
+                <nav class="space-y-0.5 px-1.5">
+                    <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded text-white bg-forti-card border-l-2 border-forti-red font-medium transition-all">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4 shrink-0 text-forti-red"></i>
+                        <span class="hidden md:inline text-xs">FortiView / Dashboard</span>
+                    </button>
+                    <button onclick="switchTab('threats')" id="nav-threats" class="nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded text-forti-muted hover:bg-forti-card hover:text-slate-200 transition-all">
+                        <i data-lucide="shield-alert" class="w-4 h-4 shrink-0 text-red-500"></i>
+                        <span class="hidden md:inline text-xs flex justify-between items-center w-full">
+                            <span>Threat Intelligence</span>
+                            <span id="threat-live-badge" class="text-[9px] bg-red-950 text-red-400 border border-red-800 px-1 rounded font-mono font-bold animate-pulse">LIVE</span>
+                        </span>
+                    </button>
+                    <button onclick="switchTab('devices')" id="nav-devices" class="nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded text-forti-muted hover:bg-forti-card hover:text-slate-200 transition-all">
+                        <i data-lucide="laptop" class="w-4 h-4 shrink-0 text-emerald-400"></i>
+                        <span class="hidden md:inline text-xs flex justify-between items-center w-full">
+                            <span>Sub-rede 192.168.12.x</span>
+                            <span id="device-count-badge" class="text-[9px] bg-forti-bg text-emerald-400 px-1 rounded font-mono">5</span>
+                        </span>
+                    </button>
+                    <button onclick="switchTab('network')" id="nav-network" class="nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded text-forti-muted hover:bg-forti-card hover:text-slate-200 transition-all">
+                        <i data-lucide="wifi" class="w-4 h-4 shrink-0 text-blue-400"></i>
+                        <span class="hidden md:inline text-xs">Config. Rede Grego</span>
+                    </button>
+                    <button onclick="switchTab('haipe')" id="nav-haipe" class="nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded text-forti-muted hover:bg-forti-card hover:text-slate-200 transition-all">
+                        <i data-lucide="key-round" class="w-4 h-4 shrink-0 text-amber-500"></i>
+                        <span class="hidden md:inline text-xs">Módulo TACLANE Type 1</span>
+                    </button>
+                    <button onclick="switchTab('policies')" id="nav-policies" class="nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded text-forti-muted hover:bg-forti-card hover:text-slate-200 transition-all">
+                        <i data-lucide="shield" class="w-4 h-4 shrink-0"></i>
+                        <span class="hidden md:inline text-xs">Políticas de Segurança</span>
+                    </button>
+                    <button onclick="switchTab('alarms')" id="nav-alarms" class="nav-btn w-full flex items-center gap-2.5 px-2.5 py-2 rounded text-forti-muted hover:bg-forti-card hover:text-slate-200 transition-all">
+                        <i data-lucide="bell" class="w-4 h-4 shrink-0 text-red-400"></i>
+                        <span class="hidden md:inline text-xs">Alarmes e Auditoria</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Footer Info -->
+            <div class="p-2.5 border-t border-forti-border text-[10px] text-forti-muted hidden md:block font-mono bg-forti-bg">
+                <div class="flex justify-between items-center mb-1">
+                    <span>Domínio Cripto:</span>
+                    <span class="text-blue-400 font-semibold">REDE GREGO</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span>Segmento Local:</span>
+                    <span class="text-emerald-400 font-semibold">192.168.12.0/24</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- VIEWPORT AREA -->
+        <main class="flex-1 overflow-y-auto p-3 md:p-4 bg-forti-bg space-y-4">
+
+            <!-- TAB 1: VISÃO GERAL (DASHBOARD) -->
+            <div id="tab-dashboard" class="tab-content space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                    <div class="bg-forti-panel border border-forti-border rounded p-3 space-y-2">
+                        <div class="flex items-center justify-between text-forti-muted border-b border-forti-border pb-1.5">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-300">Recursos FortiGate</span>
+                            <i data-lucide="activity" class="w-4 h-4 text-forti-red"></i>
+                        </div>
+                        <div class="space-y-2 pt-1">
+                            <div>
+                                <div class="flex justify-between text-[11px] font-mono mb-1">
+                                    <span class="text-forti-muted">CPU FortiEngine</span>
+                                    <span id="cpu-val" class="text-slate-200 font-bold">16%</span>
+                                </div>
+                                <div class="w-full bg-forti-bg rounded-full h-1.5 overflow-hidden">
+                                    <div id="cpu-bar" class="bg-emerald-500 h-1.5 rounded-full transition-all duration-500" style="width: 16%"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-[11px] font-mono mb-1">
+                                    <span class="text-forti-muted">RAM ECC DDR5</span>
+                                    <span id="ram-val" class="text-slate-200 font-bold">39%</span>
+                                </div>
+                                <div class="w-full bg-forti-bg rounded-full h-1.5 overflow-hidden">
+                                    <div id="ram-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-500" style="width: 39%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-forti-panel border border-forti-border rounded p-3 space-y-2">
+                        <div class="flex items-center justify-between text-forti-muted border-b border-forti-border pb-1.5">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-300">Aceleração FortiASIC</span>
+                            <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2 pt-1 text-center font-mono">
+                            <div class="bg-forti-bg p-2 rounded border border-forti-border">
+                                <div class="text-[10px] text-forti-muted">NP7 Offload</div>
+                                <div class="text-lg font-bold text-emerald-400">99.6%</div>
+                            </div>
+                            <div class="bg-forti-bg p-2 rounded border border-forti-border">
+                                <div class="text-[10px] text-forti-muted">CP9 Crypto</div>
+                                <div class="text-lg font-bold text-blue-400">98.9%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-forti-panel border border-forti-border rounded p-3 space-y-2">
+                        <div class="flex items-center justify-between text-forti-muted border-b border-forti-border pb-1.5">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-300">Status da Rede Grego</span>
+                            <i data-lucide="wifi" class="w-4 h-4 text-blue-400"></i>
+                        </div>
+                        <div class="space-y-1.5 text-[11px] font-mono pt-1">
+                            <div class="flex justify-between">
+                                <span class="text-forti-muted">Sub-rede Direcionada:</span>
+                                <span class="text-white font-bold">192.168.12.0/24</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-forti-muted">Gateway FortiGate:</span>
+                                <span class="text-emerald-400 font-bold">192.168.12.1</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-forti-muted">Módulo Cripto:</span>
+                                <span class="text-emerald-400 font-bold">TACLANE Type 1 Ativo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-forti-panel border border-forti-border rounded p-3 space-y-2">
+                        <div class="flex items-center justify-between text-forti-muted border-b border-forti-border pb-1.5">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-300">Operador do Sistema</span>
+                            <i data-lucide="user-check" class="w-4 h-4 text-emerald-400"></i>
+                        </div>
+                        <div class="space-y-1 text-[11px] font-mono pt-1 text-slate-300">
+                            <div class="flex justify-between">
+                                <span class="text-forti-muted">Operador:</span>
+                                <span class="text-emerald-400 font-bold">r_eder</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-forti-muted">Perfil:</span>
+                                <span>Administrador / Cripto-Oficial</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-forti-muted">Sessão:</span>
+                                <span class="text-amber-400 font-bold">Ativa (TLS 1.3)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- THROUGHPUT CHART -->
+                <div class="bg-forti-panel border border-forti-border rounded p-4 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-forti-border pb-2">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="line-chart" class="w-4 h-4 text-blue-400"></i>
+                            <h3 class="font-bold text-slate-200 text-xs md:text-sm uppercase tracking-wide">Tráfego da Rede Grego (Sub-rede 192.168.12.x)</h3>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs font-mono">
+                            <span class="text-forti-muted">Entrada: <strong id="ingress-val" class="text-blue-400">42.8 Gbps</strong></span>
+                            <span class="text-forti-muted">Saída: <strong id="egress-val" class="text-emerald-400">41.2 Gbps</strong></span>
+                        </div>
+                    </div>
+                    <div class="h-60 w-full">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB NOVO: LIVE CYBER THREAT INTELLIGENCE -->
+            <div id="tab-threats" class="tab-content hidden space-y-4">
+                <!-- Threat Header Metrics -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                    <div class="bg-forti-panel border border-forti-border rounded p-3 space-y-1">
+                        <div class="flex items-center justify-between text-forti-muted">
+                            <span class="text-[11px] font-mono font-semibold uppercase">Total de Ataques Bloqueados</span>
+                            <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+                        </div>
+                        <div id="metric-total-attacks" class="text-xl font-bold font-mono text-slate-100">14,289</div>
+                        <div class="text-[10px] text-emerald-400 font-mono">100% Taxa de Mitigação FortiIPS</div>
+                    </div>
+                    <div class="bg-forti-panel border border-forti-border rounded p-3 space-y-1">
+                        <div class="flex items-center justify-between text-forti-muted">
+                            <span class="text-[11px] font-mono font-semibold uppercase">Taxa Atual de Ataques</span>
+                            <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
+                        </div>
+                        <div id="metric-attack-rate" class="text-xl font-bold font-mono text-amber-400">42 req/seg</div>
+                        <div class="text-[10px] text-forti-muted font-mono">Pico recente: 128 req/seg (SYN Flood)</div>
+                    </div>
+                    <div class="bg-forti-panel border border-forti-border rounded p-3 space-y-1">
+                        <div class="flex items-center justify-between text-forti-muted">
+                            <span class="text-[11px] font-mono font-semibold uppercase">Top Origem Hostil</span>
+                            <i data-lucide="globe" class="w-4 h-4 text-forti-red"></i>
+                        </div>
+                        <div class="text-xl font-bold font-mono text-forti-red flex items-center gap-1.5">
+                            <span>China (CN)</span>
+                        </div>
+                        <div class="text-[10px] text-forti-muted font-mono">38.4% do volume global detectado</div>
+                    </div>
+                    <div class="bg-forti-panel border border-forti-border rounded p-3 space-y-1">
+                        <div class="flex items-center justify-between text-forti-muted">
+                            <span class="text-[11px] font-mono font-semibold uppercase">Vetor Mais Frequente</span>
+                            <i data-lucide="bug" class="w-4 h-4 text-blue-400"></i>
+                        </div>
+                        <div class="text-sm font-bold font-mono text-blue-400 truncate">CVE-2024-21762 (Fortinet RCE)</div>
+                        <div class="text-[10px] text-forti-muted font-mono">Bloqueado no perímetro TACLANE</div>
+                    </div>
+                </div>
+
+                <!-- Charts Row: Attack Timeline & Geolocation Distribution -->
+                <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                    <!-- Dynamic Attack Rate Chart -->
+                    <div class="xl:col-span-2 bg-forti-panel border border-forti-border rounded p-4 space-y-3">
+                        <div class="flex items-center justify-between border-b border-forti-border pb-2">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="activity" class="w-4 h-4 text-forti-red"></i>
+                                <h3 class="font-bold text-slate-200 text-xs md:text-sm uppercase tracking-wide">Evolução de Volometria de Ataques (req/min)</h3>
+                            </div>
+                            <span class="text-[10px] font-mono bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded">FortiGuard Threat Feed</span>
+                        </div>
+                        <div class="h-64 w-full">
+                            <canvas id="attackChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Geolocation / Top Countries List -->
+                    <div class="bg-forti-panel border border-forti-border rounded p-4 space-y-3 flex flex-col justify-between">
+                        <div class="border-b border-forti-border pb-2 flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="globe-2" class="w-4 h-4 text-blue-400"></i>
+                                <h3 class="font-bold text-slate-200 text-xs md:text-sm uppercase tracking-wide">Origem Geográfica</h3>
+                            </div>
+                            <span class="text-[10px] text-forti-muted font-mono">ISO-3166</span>
+                        </div>
+                        <div id="geo-breakdown-list" class="space-y-2.5 font-mono text-xs overflow-y-auto max-h-56 pr-1">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Intercepted Attacks Table -->
+                <div class="bg-forti-panel border border-forti-border rounded p-4 space-y-3">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-forti-border pb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                            <h3 class="font-bold text-slate-100 text-xs md:text-sm uppercase tracking-wide">Feed de Interceptação de Intrusão em Tempo Real (Rede Grego)</h3>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs font-mono">
+                            <span class="text-forti-muted">Destino Alvo: <strong class="text-emerald-400">192.168.12.0/24</strong></span>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left font-mono text-xs">
+                            <thead>
+                                <tr class="bg-forti-bg text-forti-muted border-b border-forti-border text-[10px] uppercase">
+                                    <th class="p-2.5">Horário</th>
+                                    <th class="p-2.5">IP de Origem</th>
+                                    <th class="p-2.5">País</th>
+                                    <th class="p-2.5">Vetor / Sigla de Ataque</th>
+                                    <th class="p-2.5">Alvo Interno</th>
+                                    <th class="p-2.5">Severidade</th>
+                                    <th class="p-2.5 text-right">Ação FortiIPS</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attack-feed-table-body" class="divide-y divide-forti-border text-slate-300">
+                                <!-- Dynamic attacks feed -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: DISPOSITIVOS CONECTADOS (192.168.12.x) -->
+            <div id="tab-devices" class="tab-content hidden space-y-4">
+                <div class="bg-forti-panel border border-forti-border rounded p-4 space-y-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b border-forti-border pb-3">
+                        <div>
+                            <h2 class="font-bold text-slate-100 text-sm md:text-base flex items-center gap-2">
+                                <i data-lucide="laptop" class="w-5 h-5 text-emerald-400"></i>
+                                Gerenciamento de Dispositivos (Sub-rede 192.168.12.x)
+                            </h2>
+                            <p class="text-forti-muted text-xs mt-0.5 font-mono">Segmento da Rede Grego - Alterações de Marca, Modelo e Hostname salvas em tempo real.</p>
+                        </div>
+                        <button onclick="addNewDevice()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-3 py-1.5 rounded flex items-center gap-1 font-mono">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Cadastrar Dispositivo
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left font-mono text-xs">
+                            <thead>
+                                <tr class="bg-forti-bg text-forti-muted border-b border-forti-border text-[10px] uppercase">
+                                    <th class="p-2.5">Endereço IP</th>
+                                    <th class="p-2.5">Nome do Dispositivo</th>
+                                    <th class="p-2.5">Marca / Fabricante</th>
+                                    <th class="p-2.5">Endereço MAC</th>
+                                    <th class="p-2.5">Status</th>
+                                    <th class="p-2.5 text-right">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="device-table-body" class="divide-y divide-forti-border text-slate-300">
+                                <!-- Populated dynamically by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: CONFIGURAÇÃO DA REDE GREGO -->
+            <div id="tab-network" class="tab-content hidden space-y-4">
+                <div class="bg-forti-panel border border-forti-border rounded p-4 space-y-4">
+                    <h2 class="font-bold text-slate-100 text-sm md:text-base flex items-center gap-2 border-b border-forti-border pb-2">
+                        <i data-lucide="wifi" class="w-5 h-5 text-blue-400"></i>
+                        Parâmetros do Domínio da Rede Grego
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
+                        <div class="bg-forti-bg p-4 rounded border border-forti-border space-y-3">
+                            <h3 class="font-bold text-blue-400 uppercase">Identificação de Rede FortiGate</h3>
+                            <div>
+                                <label class="block text-forti-muted mb-1">Nome do Domínio de Rede:</label>
+                                <input id="net-name-input" type="text" value="Grego" class="w-full bg-forti-panel border border-forti-border text-white p-2 rounded focus:outline-none focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-forti-muted mb-1">Gateway Principal (IPv4):</label>
+                                <input type="text" value="192.168.12.1" readonly class="w-full bg-forti-panel border border-forti-border text-forti-muted p-2 rounded">
+                            </div>
+                            <div>
+                                <label class="block text-forti-muted mb-1">Máscara de Sub-rede:</label>
+                                <input type="text" value="255.255.255.0 (/24)" readonly class="w-full bg-forti-panel border border-forti-border text-forti-muted p-2 rounded">
+                            </div>
+                            <button onclick="saveNetworkSettings()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-3 py-1.5 rounded">
+                                Salvar Parâmetros
+                            </button>
+                        </div>
+
+                        <div class="bg-forti-bg p-4 rounded border border-forti-border space-y-3">
+                            <h3 class="font-bold text-amber-400 uppercase">Servidor DHCP FortiGate (Faixa 192.168.12.x)</h3>
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-slate-300">DHCP Server Status:</span>
+                                <span class="text-emerald-400 font-bold bg-emerald-950 border border-emerald-800 px-2 py-0.5 rounded">ATIVO</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-slate-300">Faixa de Atribuição:</span>
+                                <span class="text-slate-200">192.168.12.2 - 192.168.12.254</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-slate-300">Tempo de Lease:</span>
+                                <span class="text-slate-200">86400s (24h)</span>
+                            </div>
+                            <div class="flex justify-between items-center py-1">
+                                <span class="text-slate-300">DNS Criptografado (DoH):</span>
+                                <span class="text-emerald-400">FortiGuard SafeDNS (192.168.12.1)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: MÓDULO HAIPE / TACLANE -->
+            <div id="tab-haipe" class="tab-content hidden space-y-4">
+                <div class="bg-forti-panel border border-forti-border rounded p-4 space-y-4">
+                    <h2 class="font-bold text-slate-100 text-sm md:text-base flex items-center gap-2 border-b border-forti-border pb-2">
+                        <i data-lucide="key-round" class="w-5 h-5 text-amber-500"></i>
+                        Gateway Criptográfico HAIPE Type 1 (Rede Grego)
+                    </h2>
+                    <div class="bg-forti-bg p-4 rounded border border-forti-border font-mono text-xs space-y-2">
+                        <div class="flex justify-between"><span class="text-forti-muted">Status da Chave Criptográfica:</span><span class="text-emerald-400 font-bold">CARREGADA (TACLANE KG-175D)</span></div>
+                        <div class="flex justify-between"><span class="text-forti-muted">Algoritmo em Uso:</span><span class="text-blue-400 font-bold">Suite B / AES-256-GCM</span></div>
+                        <div class="flex justify-between"><span class="text-forti-muted">Associação de Segurança (SA):</span><span class="text-slate-200">SPI 0x8F4A21C0</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: POLÍTICAS DE SEGURANÇA -->
+            <div id="tab-policies" class="tab-content hidden space-y-4">
+                <div class="bg-forti-panel border border-forti-border rounded p-4 space-y-3">
+                    <h2 class="font-bold text-slate-100 text-sm md:text-base flex items-center gap-2 border-b border-forti-border pb-2">
+                        <i data-lucide="shield" class="w-5 h-5 text-forti-red"></i>
+                        Políticas de Firewall FortiGate (Rede Grego)
+                    </h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left font-mono text-xs">
+                            <thead>
+                                <tr class="bg-forti-bg text-forti-muted border-b border-forti-border text-[10px] uppercase">
+                                    <th class="p-2">ID</th>
+                                    <th class="p-2">Origem / Destino</th>
+                                    <th class="p-2">Serviço</th>
+                                    <th class="p-2">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-forti-border text-slate-300">
+                                <tr>
+                                    <td class="p-2">1</td>
+                                    <td class="p-2">192.168.12.0/24 → HAIPE_TUNNEL</td>
+                                    <td class="p-2 text-amber-400">ALL_ENCRYPTED</td>
+                                    <td class="p-2"><span class="bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-bold">PERMITIR</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2">2</td>
+                                    <td class="p-2">192.168.12.0/24 → UNTRUSTED_WAN</td>
+                                    <td class="p-2 text-forti-muted">CLEAR_TEXT</td>
+                                    <td class="p-2"><span class="bg-red-950 text-red-400 border border-red-800 px-1.5 py-0.5 rounded text-[10px] font-bold">BLOQUEAR</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 6: ALARMES E AUDITORIA -->
+            <div id="tab-alarms" class="tab-content hidden space-y-4">
+                <div class="bg-forti-panel border border-forti-border rounded p-4 space-y-4">
+                    <div class="flex items-center justify-between border-b border-forti-border pb-2">
+                        <h2 class="font-bold text-slate-100 text-sm md:text-base flex items-center gap-2">
+                            <i data-lucide="bell" class="w-5 h-5 text-red-400"></i>
+                            Controle de Alarmes & Logs de Segurança
+                        </h2>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <div class="bg-forti-bg p-3 rounded border border-blue-950 space-y-2 text-center font-mono">
+                            <span class="text-blue-400 font-bold block text-xs">ALARME LEVE</span>
+                            <p class="text-[11px] text-forti-muted">Notificação sonora suave para eventos informativos de rede.</p>
+                            <button onclick="triggerAlarm('LEVE')" class="w-full bg-blue-600 hover:bg-blue-500 text-white py-1.5 rounded text-xs font-bold">Testar Alarme Leve</button>
+                        </div>
+                        <div class="bg-forti-bg p-3 rounded border border-amber-950 space-y-2 text-center font-mono">
+                            <span class="text-amber-400 font-bold block text-xs">ALARME MÉDIO</span>
+                            <p class="text-[11px] text-forti-muted">Alerta duplo para anomalias ou falhas de sincronismo.</p>
+                            <button onclick="triggerAlarm('MÉDIO')" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-1.5 rounded text-xs font-bold">Testar Alarme Médio</button>
+                        </div>
+                        <div class="bg-forti-bg p-3 rounded border border-red-950 space-y-2 text-center font-mono">
+                            <span class="text-red-400 font-bold block text-xs">ALARME GRAVE</span>
+                            <p class="text-[11px] text-forti-muted">Sirene contínua para intrusões graves ou violação cripto.</p>
+                            <button onclick="triggerAlarm('GRAVE')" class="w-full bg-red-600 hover:bg-red-500 text-white py-1.5 rounded text-xs font-bold">Testar Alarme Grave</button>
+                        </div>
+                    </div>
+
+                    <div id="alarm-history-log" class="bg-forti-bg text-slate-300 font-mono text-[11px] p-3 rounded border border-forti-border h-48 overflow-y-auto space-y-1">
+                        <div class="text-forti-muted">Log de auditoria em tempo real para a Rede Grego...</div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- CENTRAL ALARM POPUP MODAL -->
+    <div id="alarm-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div id="alarm-modal-card" class="bg-forti-panel border-2 border-forti-border max-w-lg w-full rounded-lg p-5 space-y-4 shadow-2xl">
+            <div class="flex items-start justify-between border-b border-forti-border pb-3">
+                <div class="flex items-center gap-3">
+                    <div id="alarm-modal-icon-container" class="p-2 rounded-full bg-forti-card">
+                        <i id="alarm-modal-icon" data-lucide="bell" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-base text-white">ALERTA FORTINET SECURITY FABRIC</h3>
+                            <span id="alarm-modal-badge" class="px-2 py-0.5 rounded text-xs font-mono font-bold">LEVE</span>
+                        </div>
+                        <p class="text-xs text-forti-muted font-mono">Domínio: Rede Grego | Sub-rede 192.168.12.x</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2 font-mono text-xs">
+                <div class="bg-forti-bg p-3 rounded border border-forti-border space-y-1">
+                    <div class="text-forti-muted">Inconsistência Registrada:</div>
+                    <div id="alarm-modal-desc" class="text-slate-100 font-bold">Descrição do evento de alarme.</div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                    <div class="bg-forti-bg p-2 rounded border border-forti-border">
+                        <span class="text-forti-muted block">Horário do Registro:</span>
+                        <span id="alarm-modal-time" class="text-slate-200">00:00:00</span>
+                    </div>
+                    <div class="bg-forti-bg p-2 rounded border border-forti-border">
+                        <span class="text-forti-muted block">Endereço IP Afetado:</span>
+                        <span id="alarm-modal-ip" class="text-amber-400 font-bold">192.168.12.1</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2 border-t border-forti-border">
+                <button onclick="closeAlarmModal()" class="w-full sm:w-auto bg-forti-red hover:bg-forti-redHover text-white font-bold px-5 py-2 rounded text-xs font-mono flex items-center justify-center gap-2 transition-colors border border-forti-border shadow-md">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    <span>FECHAR / RECONHECER ALERTA</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ZEROIZE MODAL -->
+    <div id="zeroize-modal" class="fixed inset-0 bg-slate-950/80 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-forti-panel border-2 border-forti-red max-w-md w-full rounded p-5 space-y-4 shadow-2xl">
+            <div class="flex items-center gap-3 text-forti-red">
+                <i data-lucide="alert-triangle" class="w-8 h-8 shrink-0"></i>
+                <div>
+                    <h3 class="font-bold text-base text-white uppercase">ZEROIZAÇÃO DE EMERGÊNCIA</h3>
+                    <p class="text-xs text-red-400 font-mono">FortiGate Rede Grego - Limpeza TACLANE</p>
+                </div>
+            </div>
+            <div class="space-y-2 font-mono text-xs">
+                <label class="block text-forti-muted">Digite <span class="text-forti-red font-bold">ZEROIZE</span> para confirmar a destruição de chaves:</label>
+                <input id="zeroize-confirm-input" type="text" class="w-full bg-forti-bg border border-forti-border text-white p-2 rounded focus:outline-none focus:border-forti-red">
+            </div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeEmergencyModal()" class="bg-forti-card text-slate-300 font-bold px-4 py-1.5 rounded text-xs">Cancelar</button>
+                <button onclick="executeZeroize()" class="bg-forti-red text-white font-bold px-4 py-1.5 rounded text-xs">EXECUTAR</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT SYSTEM ENGINE -->
+    <script>
+        // Device List State (Subnet 192.168.12.x)
+        let devices = [
+            { ip: '192.168.12.1', name: 'Gateway FortiGate-3000F', brand: 'Fortinet Enterprise', mac: '00:09:0F:82:11:01', status: 'Ativo' },
+            { ip: '192.168.12.10', name: 'Módulo Cripto TACLANE', brand: 'General Dynamics KG-175D', mac: '00:04:A3:12:45:90', status: 'Ativo' },
+            { ip: '192.168.12.15', name: 'Terminal Admin r_eder', brand: 'Dell Precision Workstation', mac: 'B4:2E:99:A1:D4:12', status: 'Ativo' },
+            { ip: '192.168.12.42', name: 'Servidor FortiAnalyzer / Audit', brand: 'Fortinet FortiAnalyzer', mac: '00:1B:D4:E8:33:02', status: 'Ativo' },
+            { ip: '192.168.12.105', name: 'Estação Operacional 05', brand: 'Lenovo ThinkCentre', mac: '3C:52:A1:09:88:54', status: 'Ativo' }
+        ];
+
+        // Threat Intelligence Mock Engine Data
+        const attackVectors = [
+            { name: 'CVE-2024-21762 (FortiOS Out-of-Bound Write)', severity: 'CRÍTICO' },
+            { name: 'SSH Brute Force Attack (Port 22)', severity: 'MÉDIO' },
+            { name: 'TCP SYN Flood Volumetric DDoS', severity: 'ALTO' },
+            { name: 'CVE-2023-27997 (FortiProxy Heap Buffer Overflow)', severity: 'CRÍTICO' },
+            { name: 'SQL Injection Probe (HTTP 443)', severity: 'MÉDIO' },
+            { name: 'Ransomware C2 Beaconing Attempt', severity: 'CRÍTICO' },
+            { name: 'Nmap TCP Port Scan Discovery', severity: 'BAIXO' },
+            { name: 'SSL VPN Credential Stuffing', severity: 'ALTO' }
+        ];
+
+        const attackerOrigins = [
+            { country: 'China', code: 'CN', flag: '🇨🇳', ipPrefix: '218.92' },
+            { country: 'Rússia', code: 'RU', flag: '🇷🇺', ipPrefix: '185.220' },
+            { country: 'Coreia do Norte', code: 'KP', flag: '🇰🇵', ipPrefix: '175.45' },
+            { country: 'Irã', code: 'IR', flag: '🇮🇷', ipPrefix: '5.160' },
+            { country: 'Estados Unidos', code: 'US', flag: '🇺🇸', ipPrefix: '104.28' },
+            { country: 'Brasil', code: 'BR', flag: '🇧🇷', ipPrefix: '177.136' },
+            { country: 'Holanda', code: 'NL', flag: '🇳🇱', ipPrefix: '45.146' }
+        ];
+
+        let geoStats = {
+            'CN': { name: 'China', flag: '🇨🇳', count: 5480, pct: 38 },
+            'RU': { name: 'Rússia', flag: '🇷🇺', count: 3210, pct: 22 },
+            'KP': { name: 'Coreia do Norte', flag: '🇰🇵', count: 1890, pct: 13 },
+            'IR': { name: 'Irã', flag: '🇮🇷', count: 1420, pct: 10 },
+            'US': { name: 'Estados Unidos', flag: '🇺🇸', count: 1100, pct: 8 },
+            'NL': { name: 'Holanda', flag: '🇳🇱', count: 720, pct: 5 },
+            'BR': { name: 'Brasil', flag: '🇧🇷', count: 469, pct: 4 }
+        };
+
+        let liveAttacksFeed = [];
+        let totalAttackCount = 14289;
+
+        let randomModeActive = true;
+        let randomTimeout = null;
+
+        // Login Logic
+        function handleLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+
+            if (user === 'r_eder' && pass === '8080Ipmask@') {
+                document.getElementById('login-overlay').classList.add('hidden');
+                document.getElementById('logged-user-display').innerText = user;
+            } else {
+                const err = document.getElementById('login-error');
+                err.classList.remove('hidden');
+                setTimeout(() => err.classList.add('hidden'), 3000);
+            }
+        }
+
+        function logout() {
+            document.getElementById('login-overlay').classList.remove('hidden');
+        }
+
+        // Tab Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-forti-card', 'border-l-2', 'border-forti-red', 'text-white');
+                btn.classList.add('text-forti-muted');
+            });
+
+            const target = document.getElementById(`tab-${tabId}`);
+            if (target) target.classList.remove('hidden');
+
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-forti-card', 'border-l-2', 'border-forti-red', 'text-white');
+                activeBtn.classList.remove('text-forti-muted');
+            }
+        }
+
+        // Devices Table Render & Edit
+        function renderDevices() {
+            const tbody = document.getElementById('device-table-body');
+            if (!tbody) return;
+
+            document.getElementById('device-count-badge').innerText = devices.length;
+
+            tbody.innerHTML = devices.map((dev, idx) => `
+                <tr class="hover:bg-forti-card/40">
+                    <td class="p-2.5 font-bold text-amber-400">${dev.ip}</td>
+                    <td class="p-2.5">
+                        <input type="text" value="${dev.name}" onchange="updateDevice(${idx}, 'name', this.value)" class="bg-forti-bg border border-forti-border text-white p-1 rounded w-full text-xs focus:border-blue-500">
+                    </td>
+                    <td class="p-2.5">
+                        <input type="text" value="${dev.brand}" onchange="updateDevice(${idx}, 'brand', this.value)" class="bg-forti-bg border border-forti-border text-slate-300 p-1 rounded w-full text-xs focus:border-blue-500">
+                    </td>
+                    <td class="p-2.5 text-forti-muted text-[11px]">${dev.mac}</td>
+                    <td class="p-2.5">
+                        <span class="bg-emerald-950 text-emerald-400 border border-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-bold">${dev.status}</span>
+                    </td>
+                    <td class="p-2.5 text-right">
+                        <button onclick="removeDevice(${idx})" class="text-red-400 hover:text-red-300 p-1" title="Remover">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function updateDevice(index, field, value) {
+            devices[index][field] = value;
+            renderDevices();
+        }
+
+        function removeDevice(index) {
+            if (devices.length > 1) {
+                devices.splice(index, 1);
+                renderDevices();
+            }
+        }
+
+        function addNewDevice() {
+            const nextIp = `192.168.12.${Math.floor(106 + Math.random() * 100)}`;
+            devices.push({
+                ip: nextIp,
+                name: 'Novo Terminal Grego',
+                brand: 'FortiClient Endpoint',
+                mac: `00:${Math.floor(10+Math.random()*80)}:${Math.floor(10+Math.random()*80)}:${Math.floor(10+Math.random()*80)}:${Math.floor(10+Math.random()*80)}:${Math.floor(10+Math.random()*80)}`,
+                status: 'Ativo'
+            });
+            renderDevices();
+        }
+
+        // Web Audio Synthesizer for Alarms
+        function playAlarmAudio(type) {
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+
+                if (type === 'LEVE') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, ctx.currentTime);
+                    osc.frequency.setValueAtTime(900, ctx.currentTime + 0.15);
+                    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.5);
+                } else if (type === 'MÉDIO') {
+                    for (let i = 0; i < 2; i++) {
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(780, ctx.currentTime + (i * 0.25));
+                        gain.gain.setValueAtTime(0.2, ctx.currentTime + (i * 0.25));
+                        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (i * 0.25) + 0.2);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(ctx.currentTime + (i * 0.25));
+                        osc.stop(ctx.currentTime + (i * 0.25) + 0.22);
+                    }
+                } else if (type === 'GRAVE') {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(450, ctx.currentTime);
+                    osc.frequency.linearRampToValueAtTime(1100, ctx.currentTime + 0.35);
+                    osc.frequency.linearRampToValueAtTime(450, ctx.currentTime + 0.7);
+                    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.75);
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.8);
+                }
+            } catch (e) {
+                console.log("Audio synthesis blocked", e);
+            }
+        }
+
+        // Alarm Trigger & Central Modal Display
+        function triggerAlarm(level) {
+            const sampleEvents = {
+                'LEVE': [
+                    'FortiGuard: Atribuição DHCP renovada na Rede Grego',
+                    'Sincronização de chave TACLANE concluída com sucesso',
+                    'Nova sessão FortiClient autorizada no gateway'
+                ],
+                'MÉDIO': [
+                    'Varredura de portas ICMP bloqueada pelo FortiIPS',
+                    'Inconsistência na re-troca de chave SA do túnel Grego',
+                    'Alerta de consumo elevado no módulo FortiASIC CP9'
+                ],
+                'GRAVE': [
+                    'FORTI-IPS: TENTATIVA DE VIOLAÇÃO CRIPTOGRÁFICA REGISTRADA',
+                    'DESCONEXÃO CRÍTICA NO ENCLAVE TACLANE REDE GREGO',
+                    'ANOMALIA DE TRÁFEGO SUSPEITO NA SUB-REDE 192.168.12.x'
+                ]
+            };
+
+            const descs = sampleEvents[level];
+            const desc = descs[Math.floor(Math.random() * descs.length)];
+            const targetIp = devices[Math.floor(Math.random() * devices.length)].ip;
+            const timeStr = new Date().toLocaleTimeString();
+
+            const modal = document.getElementById('alarm-modal');
+            const card = document.getElementById('alarm-modal-card');
+            const badge = document.getElementById('alarm-modal-badge');
+            const icon = document.getElementById('alarm-modal-icon');
+
+            document.getElementById('alarm-modal-desc').innerText = desc;
+            document.getElementById('alarm-modal-time').innerText = timeStr;
+            document.getElementById('alarm-modal-ip').innerText = targetIp;
+
+            card.className = "bg-forti-panel border-2 max-w-lg w-full rounded-lg p-5 space-y-4 shadow-2xl ";
+
+            if (level === 'LEVE') {
+                card.classList.add('border-blue-500');
+                badge.className = "px-2 py-0.5 rounded text-xs font-mono font-bold bg-blue-950 text-blue-400 border border-blue-800";
+                badge.innerText = "NÍVEL LEVE";
+                icon.className = "w-6 h-6 text-blue-400";
+            } else if (level === 'MÉDIO') {
+                card.classList.add('border-amber-500');
+                badge.className = "px-2 py-0.5 rounded text-xs font-mono font-bold bg-amber-950 text-amber-400 border border-amber-800";
+                badge.innerText = "NÍVEL MÉDIO";
+                icon.className = "w-6 h-6 text-amber-400";
+            } else {
+                card.classList.add('border-red-600', 'alarm-pulse-red');
+                badge.className = "px-2 py-0.5 rounded text-xs font-mono font-bold bg-red-950 text-red-400 border border-red-800";
+                badge.innerText = "NÍVEL GRAVE";
+                icon.className = "w-6 h-6 text-red-400";
+            }
+
+            modal.classList.remove('hidden');
+            playAlarmAudio(level);
+
+            const logContainer = document.getElementById('alarm-history-log');
+            if (logContainer) {
+                const item = document.createElement('div');
+                item.className = "p-1.5 bg-forti-bg border-b border-forti-border flex justify-between";
+                item.innerHTML = `<span>[${timeStr}] <strong>${level}</strong>: ${desc}</span> <span class="text-amber-400">${targetIp}</span>`;
+                logContainer.insertBefore(item, logContainer.firstChild);
+            }
+        }
+
+        function closeAlarmModal() {
+            document.getElementById('alarm-modal').classList.add('hidden');
+        }
+
+        // Automatic Random Scheduler for Alarms (8 hours)
+        const EIGHT_HOURS_IN_SECONDS = 8 * 60 * 60;
+        let secondsRemaining = EIGHT_HOURS_IN_SECONDS;
+        let countdownInterval = null;
+
+        function updateTimerDisplay() {
+            const timerEl = document.getElementById('countdown-timer');
+            if (!timerEl) return;
+
+            const hrs = Math.floor(secondsRemaining / 3600);
+            const mins = Math.floor((secondsRemaining % 3600) / 60);
+            const secs = secondsRemaining % 60;
+
+            const pad = (num) => String(num).padStart(2, '0');
+            timerEl.innerText = `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
+        }
+
+        function startCountdown() {
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            countdownInterval = setInterval(() => {
+                if (!randomModeActive) return;
+
+                secondsRemaining--;
+                if (secondsRemaining <= 0) {
+                    secondsRemaining = EIGHT_HOURS_IN_SECONDS;
+                    const levels = ['LEVE', 'LEVE', 'MÉDIO', 'GRAVE'];
+                    const pickedLevel = levels[Math.floor(Math.random() * levels.length)];
+                    triggerAlarm(pickedLevel);
+                }
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function toggleRandomMode() {
+            randomModeActive = !randomModeActive;
+            const btn = document.getElementById('toggle-random-btn');
+
+            if (randomModeActive) {
+                btn.innerText = "AUTOMÁTICO ATIVO";
+                btn.className = "px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-700 hover:border-emerald-500 transition-all";
+                startCountdown();
+            } else {
+                btn.innerText = "AUTOMÁTICO PAUSADO";
+                btn.className = "px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-forti-card text-forti-muted border border-forti-border hover:border-slate-500 transition-all";
+                if (countdownInterval) clearInterval(countdownInterval);
+            }
+        }
+
+        function saveNetworkSettings() {
+            const newName = document.getElementById('net-name-input').value.trim();
+            if (newName) {
+                alert(`Configurações aplicadas no FortiGate! Nome do domínio de rede: ${newName}`);
+            }
+        }
+
+        function triggerEmergencyModal() {
+            document.getElementById('zeroize-modal').classList.remove('hidden');
+        }
+
+        function closeEmergencyModal() {
+            document.getElementById('zeroize-modal').classList.add('hidden');
+        }
+
+        function executeZeroize() {
+            const val = document.getElementById('zeroize-confirm-input').value.trim();
+            if (val === 'ZEROIZE') {
+                alert('PROCEDIMENTO DE EMERGÊNCIA CONCLUÍDO: Chaves TACLANE purgadas.');
+                closeEmergencyModal();
+            }
+        }
+
+        // Render Threat Intelligence UI Components
+        function renderGeoBreakdown() {
+            const container = document.getElementById('geo-breakdown-list');
+            if (!container) return;
+
+            const items = Object.values(geoStats).sort((a, b) => b.count - a.count);
+            container.innerHTML = items.map(item => `
+                <div class="space-y-1">
+                    <div class="flex justify-between text-[11px]">
+                        <span class="flex items-center gap-1.5 text-slate-200">
+                            <span>${item.flag}</span>
+                            <span>${item.name}</span>
+                        </span>
+                        <span class="text-forti-muted">${item.count.toLocaleString()} (${item.pct}%)</span>
+                    </div>
+                    <div class="w-full bg-forti-bg rounded-full h-1.5 overflow-hidden border border-forti-border/50">
+                        <div class="bg-forti-red h-1.5 rounded-full" style="width: ${item.pct}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function generateMockAttack() {
+            const origin = attackerOrigins[Math.floor(Math.random() * attackerOrigins.length)];
+            const vector = attackVectors[Math.floor(Math.random() * attackVectors.length)];
+            const targetDev = devices[Math.floor(Math.random() * devices.length)];
+            const ip = `${origin.ipPrefix}.${Math.floor(Math.random()*254)}.${Math.floor(1+Math.random()*254)}`;
+            const time = new Date().toLocaleTimeString();
+
+            totalAttackCount += 1;
+            geoStats[origin.code].count += 1;
+
+            const actions = ['Blocked (FortiIPS)', 'Quarantined (CP9)', 'Dropped (TACLANE)', 'Crypto-Isolated'];
+            const action = actions[Math.floor(Math.random() * actions.length)];
+
+            const attackEntry = {
+                time,
+                ip,
+                country: origin.country,
+                code: origin.code,
+                flag: origin.flag,
+                vector: vector.name,
+                severity: vector.severity,
+                target: targetDev.ip,
+                action
+            };
+
+            liveAttacksFeed.unshift(attackEntry);
+            if (liveAttacksFeed.length > 8) liveAttacksFeed.pop();
+
+            renderAttackTable();
+            renderGeoBreakdown();
+
+            const totalEl = document.getElementById('metric-total-attacks');
+            if (totalEl) totalEl.innerText = totalAttackCount.toLocaleString();
+
+            const rateEl = document.getElementById('metric-attack-rate');
+            if (rateEl) rateEl.innerText = `${Math.floor(30 + Math.random() * 25)} req/seg`;
+        }
+
+        function renderAttackTable() {
+            const tbody = document.getElementById('attack-feed-table-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = liveAttacksFeed.map(atk => {
+                let badgeClass = 'bg-amber-950 text-amber-400 border-amber-800';
+                if (atk.severity === 'CRÍTICO') badgeClass = 'bg-red-950 text-red-400 border-red-800';
+                if (atk.severity === 'BAIXO') badgeClass = 'bg-blue-950 text-blue-400 border-blue-800';
+
+                return `
+                    <tr class="hover:bg-forti-card/50 transition-colors">
+                        <td class="p-2.5 text-forti-muted">${atk.time}</td>
+                        <td class="p-2.5 text-red-400 font-bold">${atk.ip}</td>
+                        <td class="p-2.5 flex items-center gap-1.5">
+                            <span>${atk.flag}</span>
+                            <span class="text-slate-200">${atk.country} (${atk.code})</span>
+                        </td>
+                        <td class="p-2.5 text-blue-300 font-semibold truncate max-w-[200px]">${atk.vector}</td>
+                        <td class="p-2.5 text-amber-400">${atk.target}</td>
+                        <td class="p-2.5">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] border font-bold ${badgeClass}">${atk.severity}</span>
+                        </td>
+                        <td class="p-2.5 text-right font-bold text-emerald-400">${atk.action}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Charts Initialization
+        let trafficChart, attackChart;
+        function initCharts() {
+            const ctxTraffic = document.getElementById('trafficChart').getContext('2d');
+            trafficChart = new Chart(ctxTraffic, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 15}, (_, i) => `${15 - i}s`),
+                    datasets: [
+                        {
+                            label: 'Entrada (192.168.12.x)',
+                            data: Array.from({length: 15}, () => Math.floor(35 + Math.random() * 10)),
+                            borderColor: '#2e7bf6',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Saída (Cripto Tunnel)',
+                            data: Array.from({length: 15}, () => Math.floor(30 + Math.random() * 10)),
+                            borderColor: '#20ba68',
+                            borderWidth: 2,
+                            tension: 0.3,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: '#333748' }, ticks: { color: '#8e96a6' } },
+                        y: { grid: { color: '#333748' }, ticks: { color: '#8e96a6' }, min: 0, max: 100 }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            const ctxAttack = document.getElementById('attackChart').getContext('2d');
+            attackChart = new Chart(ctxAttack, {
+                type: 'bar',
+                data: {
+                    labels: ['12m atrás', '10m atrás', '8m atrás', '6m atrás', '4m atrás', '2m atrás', 'Agora'],
+                    datasets: [{
+                        label: 'Tentativas de Ataques',
+                        data: [420, 680, 510, 890, 740, 620, 950],
+                        backgroundColor: 'rgba(204, 51, 51, 0.6)',
+                        borderColor: '#cc3333',
+                        borderWidth: 1,
+                        borderRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { grid: { color: '#333748' }, ticks: { color: '#8e96a6' } },
+                        y: { grid: { color: '#333748' }, ticks: { color: '#8e96a6' }, min: 0 }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        // Telemetry & Attack Generation Loops
+        setInterval(() => {
+            const cpu = Math.floor(14 + Math.random() * 6);
+            const ram = Math.floor(38 + Math.random() * 2);
+            document.getElementById('cpu-val').innerText = `${cpu}%`;
+            document.getElementById('cpu-bar').style.width = `${cpu}%`;
+            document.getElementById('ram-val').innerText = `${ram}%`;
+            document.getElementById('ram-bar').style.width = `${ram}%`;
+
+            if (trafficChart) {
+                const inVal = Math.floor(38 + Math.random() * 8);
+                const outVal = Math.floor(35 + Math.random() * 8);
+                document.getElementById('ingress-val').innerText = `${inVal}.4 Gbps`;
+                document.getElementById('egress-val').innerText = `${outVal}.2 Gbps`;
+
+                trafficChart.data.datasets[0].data.shift();
+                trafficChart.data.datasets[0].data.push(inVal);
+                trafficChart.data.datasets[1].data.shift();
+                trafficChart.data.datasets[1].data.push(outVal);
+                trafficChart.update('none');
+            }
+
+            if (attackChart) {
+                const newAttackVal = Math.floor(500 + Math.random() * 500);
+                attackChart.data.datasets[0].data.shift();
+                attackChart.data.datasets[0].data.push(newAttackVal);
+                attackChart.update('none');
+            }
+        }, 2000);
+
+        // Continuous attack generator
+        setInterval(() => {
+            generateMockAttack();
+        }, 2500);
+
+        window.onload = function() {
+            lucide.createIcons();
+            renderDevices();
+            renderGeoBreakdown();
+            for(let i=0; i<5; i++) generateMockAttack();
+            initCharts();
+            updateTimerDisplay();
+            startCountdown();
+        };
+    </script>
+</body>
+</html>
